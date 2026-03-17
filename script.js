@@ -87,6 +87,25 @@ function applyLang() {
 }
 function toggleL() { lang = lang === 'bn' ? 'en' : 'bn'; applyLang(); }
 
+/* ── THEME CYCLE ── */
+let theme = 'forest';
+const THEMES = [
+  { key: 'forest', label: '🌿 Forest' },
+  { key: 'mist',   label: '🌫️ Mist'   },
+  { key: 'rose',   label: '🌸 Rose'   },
+  { key: 'slate',  label: '🌙 Slate'  }
+];
+let themeIdx = 0;
+function cycleTheme() {
+  themeIdx = (themeIdx + 1) % THEMES.length;
+  const { key, label } = THEMES[themeIdx];
+  theme = key;
+  document.body.className = key;
+  document.getElementById('tpLbl').textContent = label;
+  initPts(); drawBg();
+  if (cardMade) drawCard();
+}
+
 /* ── BACKGROUND CANVAS ── */
 const cv  = document.getElementById('bg');
 const ctx = cv.getContext('2d');
@@ -104,16 +123,32 @@ function initPts() {
     spd: Math.random() * 0.01 + 0.003
   });
 }
+const BG_PT = {
+  forest: '65,155,90',
+  mist:   '80,140,105',
+  rose:   '190,110,85',
+  slate:  '80,110,195'
+};
+const BG_BASE = {
+  forest: '#0d1a12',
+  mist:   '#e8ede6',
+  rose:   '#160e0c',
+  slate:  '#0c1018'
+};
 function drawBg() {
   if (raf) cancelAnimationFrame(raf);
   function frame() {
     const W = cv.width, H = cv.height;
-    ctx.fillStyle = '#eff1ee'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = BG_BASE[theme]; ctx.fillRect(0, 0, W, H);
+    const pt = BG_PT[theme];
+    const isMist = theme === 'mist';
     pts.forEach(p => {
       p.ph += p.spd; p.y += p.vy;
       if (p.y > H + 8) { p.y = -8; p.x = Math.random() * W; }
-      const a = 0.03 + Math.sin(p.ph) * 0.04;
-      ctx.fillStyle = `rgba(90,140,110,${Math.max(0, a)})`;
+      const a = isMist
+        ? 0.03 + Math.sin(p.ph) * 0.04
+        : 0.05 + Math.sin(p.ph) * 0.1;
+      ctx.fillStyle = `rgba(${pt},${Math.max(0, a)})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     });
     raf = requestAnimationFrame(frame);
@@ -186,7 +221,13 @@ function doCopy() {
 
 /* ── CONFETTI ── */
 function burst() {
-  const cols  = ['#8aaa98','#b8d0c0','#6a9278','#3a6e50','#c8e0d0','#a0c4b0'];
+  const palettes = {
+    forest: ['#5ab878','#a0e0b0','#3d8a56','#d8ead0','#7acc90'],
+    mist:   ['#4a8860','#8aaa98','#b8d0c0','#2a6040','#c8e0d0'],
+    rose:   ['#c87860','#f0d8cc','#a05840','#e8b8a0','#d49080'],
+    slate:  ['#7090d0','#a8c0f0','#4a6aac','#d0d8f0','#8aa8e0']
+  };
+  const cols  = palettes[theme];
   const chars = ['✿','·','◦','○','✦','◇','❀','*'];
   for (let i = 0; i < 60; i++) {
     setTimeout(() => {
@@ -217,47 +258,55 @@ function drawCard() {
   const x = c.getContext('2d');
   const W = c.width, H = c.height;
 
+  const P = {
+    forest: { bg1:'#0d1a12', bg2:'#142010', acc:'#5ab878', sub:'#3d8a56', txt:'#d8ead0', muted:'#4a7a58' },
+    mist:   { bg1:'#e8ede6', bg2:'#dde5da', acc:'#4a8860', sub:'#6aaa80', txt:'#1e2e22', muted:'#8aaa94' },
+    rose:   { bg1:'#160e0c', bg2:'#201210', acc:'#c87860', sub:'#a05840', txt:'#f0d8cc', muted:'#6a4838' },
+    slate:  { bg1:'#0c1018', bg2:'#101828', acc:'#7090d0', sub:'#4a6aac', txt:'#d0d8f0', muted:'#3a4870' }
+  };
+  const p = P[theme];
+
   const g = x.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#eff1ee'); g.addColorStop(1, '#e4e8e2');
+  g.addColorStop(0, p.bg1); g.addColorStop(1, p.bg2);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
 
-  x.strokeStyle = '#6a927855'; x.lineWidth = 0.8;
+  x.strokeStyle = p.acc + '44'; x.lineWidth = 0.8;
   x.strokeRect(12, 12, W - 24, H - 24);
 
   x.font = '13px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillStyle = '#6a927899';
+  x.fillStyle = p.acc + '88';
   [[22,22],[W-22,22],[22,H-22],[W-22,H-22]].forEach(([cx2,cy2]) => x.fillText('✿', cx2, cy2));
 
   x.font = '28px serif'; x.fillText('🌙', W/2 - 18, 50);
-  x.font = '14px serif'; x.fillStyle = '#6a9278'; x.fillText('✦', W/2 + 18, 50);
+  x.font = '14px serif'; x.fillStyle = p.acc; x.fillText('✦', W/2 + 18, 50);
 
-  x.fillStyle = '#6a9278';
+  x.fillStyle = p.acc;
   x.font = 'italic 600 31px "Lora",serif';
-  x.shadowColor = '#6a927855'; x.shadowBlur = 10;
+  x.shadowColor = p.acc; x.shadowBlur = 12;
   x.fillText('Eid Mubarak', W/2, 96);
   x.shadowBlur = 0;
 
-  x.fillStyle = '#9aaa9e'; x.font = 'italic 13px "Lora",serif';
+  x.fillStyle = p.muted; x.font = 'italic 13px "Lora",serif';
   x.fillText('Taqabbalallahu Minna Wa Minkum', W/2, 120);
 
-  x.strokeStyle = '#6a927830'; x.lineWidth = 0.6;
+  x.strokeStyle = p.acc + '30'; x.lineWidth = 0.6;
   x.beginPath(); x.moveTo(70, 136); x.lineTo(W-70, 136); x.stroke();
 
-  x.fillStyle = '#8aaa98'; x.font = '300 13.5px "DM Sans",sans-serif';
+  x.fillStyle = p.sub; x.font = '300 13.5px "DM Sans",sans-serif';
   x.fillText("With warmest wishes and du'a,", W/2, 158);
-  x.fillStyle = '#2c3a34'; x.font = '600 20px "Lora",serif';
+  x.fillStyle = p.txt; x.font = '600 20px "Lora",serif';
   x.fillText('Shaon', W/2, 185);
-  x.fillStyle = '#9aaa9e'; x.font = '300 11.5px "DM Sans",sans-serif';
+  x.fillStyle = p.muted; x.font = '300 11.5px "DM Sans",sans-serif';
   x.fillText('EID UL FITR  ' + new Date().getFullYear(), W/2, 208);
 
-  x.fillStyle = '#6a927812'; x.fillRect(0, H-30, W, 30);
-  x.fillStyle = '#9aaa9e'; x.font = '11px "DM Sans",sans-serif';
+  x.fillStyle = p.acc + '12'; x.fillRect(0, H-30, W, 30);
+  x.fillStyle = p.muted; x.font = '11px "DM Sans",sans-serif';
   x.fillText('May Allah accept from us and from you  ·  Ameen', W/2, H-12);
 }
 
 function dlCard() {
   const a = document.createElement('a');
-  a.download = 'EidCard-Shaon.png';
+  a.download = `EidCard-Shaon-${theme}.png`;
   a.href = document.getElementById('ec').toDataURL();
   a.click();
 }
